@@ -2,14 +2,14 @@ package world;
 
 import matrix.Ray3;
 import matrix.Vec3;
-import matrix.Vec4;
 
 /**
  * Created by Nyrmburk on 8/17/2016.
  */
 public abstract class Volumetric<E> {
 
-	E data;
+	private E data;
+	private int index;
 
 	public abstract IntersectionData intersection(Ray3 ray);
 
@@ -23,5 +23,13 @@ public abstract class Volumetric<E> {
 
 	public void putData(E data) {
 		this.data = data;
+	}
+
+	public int getIndex() {
+		return index;
+	}
+
+	public void setIndex(int index) {
+		this.index = index;
 	}
 }

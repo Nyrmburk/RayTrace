@@ -28,6 +28,6 @@ public class Ray3 {
 
 	public Vec3 point(float t) {
 
-		return position.add(direction.multiply(t));
+		return position.add(direction.multiply(t * length));
 	}
 }

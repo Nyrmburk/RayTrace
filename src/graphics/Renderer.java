@@ -17,18 +17,21 @@ public class Renderer {
 	private Rectangle viewport;
 	private Rectangle window;
 	private BufferedImage frameBuffer;
-
-	{
-		camera = new PerspectiveCamera();
-		setWindow(new Rectangle(640, 480));
-		setViewport(getWindow());
-	}
+	private Mat4 projection;
 
 	ClosestQuery<Material> query = new ClosestQuery<>();
 
+	public Renderer(Rectangle window) {
+
+		camera = new PerspectiveCamera();
+		setWindow(window);
+		setViewport(getWindow());
+	}
+
 	public void render(World<Material> world) {
 
-		Mat4 inverseMatrix = camera.getProjection(viewport.getSize()).multiply(camera.getTransform()).inverse();
+		projection = camera.getProjection(viewport.getSize()).multiply(camera.getTransform());
+		Mat4 inverseMatrix = projection.inverse();
 		Vec3 near, far;
 
 		for (int y = 0; y < viewport.height; y++) {
@@ -52,7 +55,9 @@ public class Renderer {
 		if (closest == null)
 			return new Color(0, 0, 0, 0);
 
-		return Color.getHSBColor(0, 0, 1 - query.closest.depth);
+		Vec3 normal = query.closest.intersection.direction;
+		return new Color((normal.x+1)/2, (normal.y+1)/2, (normal.z+1)/2);
+//		return Color.getHSBColor(0, 0, (2 - query.closest.intersection.position.length()) / 2f);
 	}
 
 	public Camera getCamera() {

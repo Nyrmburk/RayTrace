@@ -1,8 +1,6 @@
 package world;
 
 import matrix.Ray3;
-import matrix.Vec3;
-import matrix.Vec4;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -18,7 +16,6 @@ public class World<E> {
 	public void raytrace(RaycastQuery<E> query, Ray3 ray) {
 
 		float fraction;
-		float length = ray.length;
 		Iterator<Volumetric<E>> it = volumes.iterator();
 		while (it.hasNext()) {
 
@@ -28,7 +25,7 @@ public class World<E> {
 			if (intersection != null) {
 
 				fraction = query.intersection(volume.getData(), intersection);
-				ray.length = length * fraction;
+				ray.length *= fraction;
 			}
 		}
 	}

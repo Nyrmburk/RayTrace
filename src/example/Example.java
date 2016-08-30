@@ -1,8 +1,11 @@
 package example;
 
 import graphics.Material;
+import graphics.Model;
 import graphics.PerspectiveCamera;
 import graphics.Renderer;
+import matrix.Ray3;
+import matrix.Transform;
 import matrix.Vec3;
 import volume.Triangle;
 import world.World;
@@ -20,35 +23,55 @@ public class Example {
 
 	public static void main(String[] args) {
 
-		Dimension resolution = new Dimension(640, 480);
+		Rectangle window = new Rectangle(640, 480);
 
-		Renderer renderer = new Renderer();
-		renderer.setWindow(new Rectangle(renderer.getWindow().getLocation(), resolution));
-		renderer.setCamera(new PerspectiveCamera(90, 0.01f, 20));
+		Renderer renderer = new Renderer(window);
+		renderer.setCamera(new PerspectiveCamera(75, 0.01f, 20));
+		Transform.translate(renderer.getCamera().getTransform(), new Vec3(0, 0, -2.5f));
+		Transform.rotate(renderer.getCamera().getTransform(), new Vec3(0, 1, 0), 0.4f);
 
 		World<Material> world = new World<>();
 
-		world.addVolume(new Triangle<>(
-				new Vec3(-5, -1, -10),
-				new Vec3(5, -1, -10),
-				new Vec3(0, 7, -10)));
+//		world.addVolume(new Triangle<>(
+//				new Vec3(-5, -1, -10),
+//				new Vec3(5, -1, -10),
+//				new Vec3(0, 7, -10)));
+//
+//		Material checker = new Material();
+//		checker.diffuse = generateChecker();
+//
+//		Triangle<Material> floor1 = new Triangle<>(
+//				new Vec3(-5, -3, -5),
+//				new Vec3(5, -3, -5),
+//				new Vec3(-5, -3, -15));
+//		floor1.putData(checker);
+//		world.addVolume(floor1);
+//
+//		Triangle<Material> floor2 = new Triangle<>(
+//				new Vec3(5, -3, -5),
+//				new Vec3(5, -3, -15),
+//				new Vec3(-5, -3, -15));
+//		floor2.putData(checker);
+//		world.addVolume(floor2);
 
-		Material checker = new Material();
-		checker.diffuse = generateChecker();
+		Model model = new Model(9);
+//		model.setVertex(0, new Vec3(-5, -4, -10));
+//		model.setVertex(1, new Vec3(5, -4, -10));
+//		model.setVertex(2, new Vec3(0, 0, -10));
+//		model.setVertex(3, new Vec3(-5, -3, -5));
+//		model.setVertex(4, new Vec3(5, -3, -5));
+//		model.setVertex(5, new Vec3(-5, -3, -15));
+//		model.setVertex(6, new Vec3(5, -3, -5));
+//		model.setVertex(7, new Vec3(5, -3, -15));
+//		model.setVertex(8, new Vec3(-5, -3, -15));
+		try {
+			model.load(new File("resources\\monkey.obj").toPath());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 
-		Triangle<Material> floor1 = new Triangle<>(
-				new Vec3(-5, -3, -5),
-				new Vec3(5, -3, -5),
-				new Vec3(-5, -3, -15));
-		floor1.putData(checker);
-		world.addVolume(floor1);
-
-		Triangle<Material> floor2 = new Triangle<>(
-				new Vec3(5, -3, -5),
-				new Vec3(5, -3, -15),
-				new Vec3(-5, -3, -15));
-		floor2.putData(checker);
-		world.addVolume(floor2);
+		for (int i = 0; i < model.getElementCapacity();)
+			world.addVolume(new Triangle<>(model.getVertex(i++), model.getVertex(i++), model.getVertex(i++)));
 
 		renderer.render(world);
 

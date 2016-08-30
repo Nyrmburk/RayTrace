@@ -21,6 +21,13 @@ public class Vec3 {
 		this.z = z;
 	}
 
+	public Vec3(float... xyz) {
+
+		this.x = xyz[0];
+		this.y = xyz[1];
+		this.z = xyz[2];
+	}
+
 	public Vec3(Vec3 copy) {
 
 		this(copy.x, copy.y, copy.z);
