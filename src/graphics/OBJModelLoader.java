@@ -94,41 +94,49 @@ public class OBJModelLoader {
 				break;
 			// elements
 			case "f":// face
-				int[] verts = new int[arguments.length - 1];
-				int[] uvs = new int[arguments.length - 1];
-				int[] norms = new int[arguments.length - 1];
+
+				// line formatted as:
+				// vertex_index/texture_index/normal_index
+				// where texture_index and normal_index can be missing
+				// and that pattern is repeated in the line for every vertex in the face
+
+				int[] vertexIndices = new int[arguments.length - 1];
+				int[] textureIndices = new int[arguments.length - 1];
+				int[] normalIndices = new int[arguments.length - 1];
 
 				@SuppressWarnings("unused")
-				boolean useUVs = false;
+				boolean useTextures = false;
 				@SuppressWarnings("unused")
-				boolean useNorms = false;
+				boolean useNormals = false;
 
 				for (int i = 0; i < arguments.length - 1; i++) {
 
 					String[] face = arguments[i + 1].split("/");
 					if (!face[0].isEmpty())
-						verts[i] = Integer.parseInt(face[0]) - 1;
+						vertexIndices[i] = Integer.parseInt(face[0]) - 1;
 
 					if (face.length < 2)
 						continue;
 					if (!face[1].isEmpty()) {
 
-						uvs[i] = Integer.parseInt(face[1]) - 1;
-						useUVs = true;
+						textureIndices[i] = Integer.parseInt(face[1]) - 1;
+						useTextures = true;
 					}
 
 					if (face.length < 3)
 						continue;
 					if (!face[2].isEmpty()) {
 
-						norms[i] = Integer.parseInt(face[2]) - 1;
-						useNorms = true;
+						normalIndices[i] = Integer.parseInt(face[2]) - 1;
+						useNormals = true;
 					}
 				}
 
-				addFace(verts);
-				// if (useUVs) model.textureCoords.put(uvs);
-				// if (useNorms) model.normals.put(norms);
+				if (!useTextures)
+					textureIndices = null;
+				if (!useNormals)
+					normalIndices = null;
+				defineFace(vertexIndices, textureIndices, normalIndices);
 				break;
 			case "lod":// level of detail
 				break;
@@ -158,28 +166,34 @@ public class OBJModelLoader {
 		dest.add(vec);
 	}
 
-	public void addFace(int... indices) {
+	public void defineFace(int[] vertexIndices, int[] textureIndices, int[] normalIndices) {
 
-		int[][] triangles = triangulate(indices);
+		int[][] triangles = triangulate(vertexIndices.length);
 
-		for (int[] triangle : triangles)
-			for (int index : triangle)
-				this.vertexIndices.add(index);
+		for (int[] triangle : triangles) {
+			for (int index : triangle) {
+				this.vertexIndices.add(vertexIndices[index]);
+				if (textureIndices != null)
+					this.textureIndices.add(textureIndices[index]);
+				if (normalIndices != null)
+					this.normalIndices.add(normalIndices[index]);
+			}
+		}
 	}
 
-	private static int[][] triangulate(int[] sides) {
-		boolean[] discard = new boolean[sides.length];
+	private static int[][] triangulate(int sides) {
+		boolean[] discard = new boolean[sides];
 
 		List<int[]> triangles = new ArrayList<>();
 		int index = 0;
-		for (int i = 0; i < sides.length - 2; i++) {
+		for (int i = 0; i < sides - 2; i++) {
 			int[] tri = new int[3];
 
 			for (int j = 0; j < 3; j++) {
-				if (index < sides.length) {
+				if (index < sides) {
 
 					if (!discard[index]) {
-						tri[j] = sides[index];
+						tri[j] = index;
 					} else {
 						j--;
 					}
