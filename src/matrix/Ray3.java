@@ -9,16 +9,21 @@ public class Ray3 {
 	public Vec3 direction;
 	public float length;
 
+	// position, direction, length
 	public Ray3(Vec3 position, Vec3 direction, float length) {
 
-		this.length = length;
 		this.position = position;
 		this.direction = direction;
+		this.length = length;
 	}
 
-	public Ray3(Vec3 position, Vec3 direction) {
+	// start position, end position
+	public Ray3(Vec3 startPosition, Vec3 endPosition) {
 
-		this(position, direction.normalized(), direction.length());
+		this.position = startPosition;
+		this.direction = endPosition.subtract(startPosition);
+		this.length = direction.length();
+		this.direction = this.direction.normalized();
 	}
 
 	public Ray3(float... pn) {

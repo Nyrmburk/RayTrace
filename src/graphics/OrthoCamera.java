@@ -1,5 +1,6 @@
 package graphics;
 
+import graphics.scene.Camera;
 import matrix.Mat4;
 import matrix.Projection;
 

@@ -1,6 +1,6 @@
 package matrix;
 
-import graphics.Camera;
+import graphics.scene.Camera;
 
 import java.awt.*;
 

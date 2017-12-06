@@ -5,12 +5,11 @@ import matrix.Vec2;
 import matrix.Vec3;
 import matrix.Vec4;
 import world.IntersectionData;
-import world.Volumetric;
 
 /**
  * Created by Nyrmburk on 8/17/2016.
  */
-public class Triangle<E> extends Volumetric<E> {
+public class Triangle implements Volumetric {
 
 	private static final float EPSILON = 0.00001f;
 
@@ -24,7 +23,7 @@ public class Triangle<E> extends Volumetric<E> {
 	}
 
 	@Override
-	public IntersectionData intersection(Ray3 ray) {
+	public IntersectionData<Triangle> intersection(final Ray3 ray) {
 
 		Vec3 edgeAB, edgeAC;
 
@@ -51,23 +50,18 @@ public class Triangle<E> extends Volumetric<E> {
 		if (v < 0 || u + v > 1)
 			return null;
 
-		float depth = sInverse * edgeAC.dot(r) / ray.length;
+		float depthFraction = sInverse * edgeAC.dot(r) / ray.length;
 
-		if (depth < 0 || depth > 1)
+		if (depthFraction < 0 || depthFraction > 1)
 			return null;
 
-		Vec3 normal = edgeAB.cross(edgeAC);
+		Vec3 normal = edgeAB.cross(edgeAC).normalized();
 
-		return new IntersectionData(depth, new Ray3(ray.point(depth), normal), new Vec2(u, v));
+		return new IntersectionData<>(depthFraction, this, ray, ray.point(depthFraction), normal, new Vec2(u, v));
 	}
 
 	@Override
-	public Vec3 getRadius() {
-		return null;
-	}
-
-	@Override
-	public Vec3 getCenter() {
-		return null;
+	public AABB getBounds() {
+		return new AABB(a, b, c);
 	}
 }

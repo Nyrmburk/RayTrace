@@ -3,7 +3,7 @@ package world;
 /**
  * Created by Nyrmburk on 8/17/2016.
  */
-public interface RaycastQuery<E> {
+public interface RaycastQuery {
 
-	float intersection(Object data, IntersectionData intersection);
+	float intersection(IntersectionData intersection);
 }

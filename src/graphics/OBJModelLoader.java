@@ -8,6 +8,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -43,18 +44,48 @@ public class OBJModelLoader {
 
 			model = new Model(vertexIndices.size());
 
+			if (normals.isEmpty()) {
+
+				for (int i = 0; i < vertices.size(); i++)
+					normals.add(new Vec3());
+
+				for (Integer index : vertexIndices)
+					normalIndices.add(index);
+
+				Model.generateNormals(new Iterator<Model.Face>() {
+					int index = 0;
+
+					@Override
+					public boolean hasNext() {
+						return index < vertexIndices.size();
+					}
+
+					@Override
+					public Model.Face next() {
+
+						Model.Face face = new Model.Face(
+								vertices.get(vertexIndices.get(index)),
+								vertices.get(vertexIndices.get(index + 1)),
+								vertices.get(vertexIndices.get(index + 2)),
+								normals.get(normalIndices.get(index)),
+								normals.get(normalIndices.get(index + 1)),
+								normals.get(normalIndices.get(index + 2))
+						);
+						index += 3;
+						return face;
+					}
+				}, normals.iterator());
+			}
+
 			for (int i = 0; i < vertexIndices.size(); i++) {
 				model.setVertex(i, vertices.get(vertexIndices.get(i)));
 			}
 
-			for (int i = 0; i < normals.size(); i++)
+			for (int i = 0; i < normalIndices.size(); i++)
 				model.setNormal(i, normals.get(normalIndices.get(i)));
 
-			for (int i = 0; i < textureCoords.size(); i++)
+			for (int i = 0; i < textureIndices.size(); i++)
 				model.setTexCoord(i, textureCoords.get(textureIndices.get(i)));
-
-			if (normals.isEmpty())
-				model.generateNormals();
 
 			model.rewindBuffers();
 

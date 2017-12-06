@@ -1,4 +1,4 @@
-package graphics;
+package graphics.scene;
 
 import matrix.Mat4;
 import matrix.Vec3;

@@ -1,14 +1,16 @@
 package example;
 
-import graphics.Material;
-import graphics.Model;
-import graphics.PerspectiveCamera;
-import graphics.Renderer;
-import matrix.Ray3;
+import graphics.*;
+import graphics.renderdata.Renderable;
+import graphics.renderdata.TriangleRenderable;
+import graphics.scene.Light;
+import graphics.scene.PerspectiveCamera;
+import graphics.scene.PointLight;
+import graphics.scene.Scene;
+import graphics.value.NumberSource;
 import matrix.Transform;
+import matrix.Vec2;
 import matrix.Vec3;
-import volume.Triangle;
-import world.World;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -26,11 +28,17 @@ public class Example {
 		Rectangle window = new Rectangle(640, 480);
 
 		Renderer renderer = new Renderer(window);
-		renderer.setCamera(new PerspectiveCamera(75, 0.01f, 20));
-		Transform.translate(renderer.getCamera().getTransform(), new Vec3(0, 0, -2.5f));
-		Transform.rotate(renderer.getCamera().getTransform(), new Vec3(0, 1, 0), 0.4f);
+		renderer.setCamera(new PerspectiveCamera(75, 0.01f, 200));
+//		Transform.translate(renderer.getCamera().getTransform(), new Vec3(0, -5, -15f));
+		Transform.translate(renderer.getCamera().getTransform(), new Vec3(0, 0, -5f));
+		Transform.rotate(renderer.getCamera().getTransform(), new Vec3(0, 1, 0), -0.4f);
+//		Transform.rotate(renderer.getCamera().getTransform(), new Vec3(0, 1, 0), 0.9f);
 
-		World<Material> world = new World<>();
+		Material material = new Material();
+		material.diffuseIntensity = new NumberSource(0.5f);
+		material.refraction = uv -> 3;
+
+		Scene scene = new Scene();
 
 //		world.addVolume(new Triangle<>(
 //				new Vec3(-5, -1, -10),
@@ -39,20 +47,35 @@ public class Example {
 //
 //		Material checker = new Material();
 //		checker.diffuse = generateChecker();
-//
-//		Triangle<Material> floor1 = new Triangle<>(
-//				new Vec3(-5, -3, -5),
-//				new Vec3(5, -3, -5),
-//				new Vec3(-5, -3, -15));
+
+		Renderable floor1 = new TriangleRenderable(
+				new Vec3(-10, -1.5f, 10), // close left
+				new Vec3(10, -1.5f, 10), // close right
+				new Vec3(-10, -1.5f, -10), // far left
+				new Vec3(0, 1, 0),
+				new Vec3(0, 1, 0),
+				new Vec3(0, 1, 0),
+				new Vec2(0, 0),
+				new Vec2(1, 0),
+				new Vec2(0, 1));
 //		floor1.putData(checker);
-//		world.addVolume(floor1);
-//
-//		Triangle<Material> floor2 = new Triangle<>(
-//				new Vec3(5, -3, -5),
-//				new Vec3(5, -3, -15),
-//				new Vec3(-5, -3, -15));
+		scene.addVolume(floor1);
+
+		Renderable floor2 = new TriangleRenderable(
+				new Vec3(10, -1.5f, 10), // close right
+				new Vec3(10, -1.5f, -10), // far right
+				new Vec3(-10, -1.5f, -10), // far left
+				new Vec3(0, 1, 0),
+				new Vec3(0, 1, 0),
+				new Vec3(0, 1, 0),
+				new Vec2(1, 0),
+				new Vec2(1, 1),
+				new Vec2(0, 1));
 //		floor2.putData(checker);
-//		world.addVolume(floor2);
+		scene.addVolume(floor2);
+
+		Light light = new PointLight(new Vec3(2, 3, 3), new Vec3(1, 1, 1), 10);
+		scene.addLight(light);
 
 		Model model = new Model(9);
 //		model.setVertex(0, new Vec3(-5, -4, -10));
@@ -70,10 +93,13 @@ public class Example {
 			e.printStackTrace();
 		}
 
-		for (int i = 0; i < model.getElementCapacity();)
-			world.addVolume(new Triangle<>(model.getVertex(i++), model.getVertex(i++), model.getVertex(i++)));
+		long time = System.currentTimeMillis();
+		scene.addModel(model);
+		System.out.println("build:" + (System.currentTimeMillis() - time) + "ms");
 
-		renderer.render(world);
+		time = System.currentTimeMillis();
+		renderer.render(scene);
+		System.out.println("render:" + (System.currentTimeMillis() - time) + "ms");
 
 		BufferedImage image = renderer.getFrameBuffer();
 

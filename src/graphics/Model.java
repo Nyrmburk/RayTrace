@@ -8,6 +8,8 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.file.Path;
+import java.util.Iterator;
+import java.util.List;
 
 /**
  * Created by Nyrmburk on 5/13/2016.
@@ -93,40 +95,6 @@ public class Model extends Resource {
 		return resized;
 	}
 
-	public void generateNormals() {
-
-		for (int i = 0; i < elementCapacity; i += 3) {
-
-			Vec3 a = getVertex(i    );
-			Vec3 b = getVertex(i + 1);
-			Vec3 c = getVertex(i + 2);
-
-			Vec3 p = b.subtract(a);
-			Vec3 q = c.subtract(a);
-
-			Vec3 normal = p.cross(q).normalized();
-
-			float angleA = p.angle(q);
-
-			p = c.subtract(b);
-			q = a.subtract(b);
-
-			float angleB = p.angle(q);
-
-			p = a.subtract(c);
-			q = b.subtract(c);
-
-			float angleC = p.angle(q);
-
-			setNormal(i    , getNormal(i    ).add(normal.multiply(angleA)));
-			setNormal(i + 1, getNormal(i + 1).add(normal.multiply(angleB)));
-			setNormal(i + 2, getNormal(i + 2).add(normal.multiply(angleC)));
-		}
-
-		for (int i = 0; i < elementCapacity; i++)
-			setNormal(i, getNormal(i).normalized());
-	}
-
 	public Vec3 getVertex(int index) {
 
 		index *= VERTEX_STRIDE;
@@ -208,5 +176,68 @@ public class Model extends Resource {
 		vertices = temp.vertices;
 		normals = temp.normals;
 		texCoords = temp.texCoords;
+	}
+
+	public static void generateNormals(Iterator<Face> faces, Iterator<Vec3> normals) {
+
+		while (faces.hasNext()) {
+
+			Face face = faces.next();
+
+			Vec3 a = face.vertexA;
+			Vec3 b = face.vertexB;
+			Vec3 c = face.vertexC;
+
+			Vec3 p = b.subtract(a);
+			Vec3 q = c.subtract(a);
+
+			Vec3 normal = p.cross(q).normalized();
+
+			float angleA = p.angle(q);
+
+			p = c.subtract(b);
+			q = a.subtract(b);
+
+			float angleB = p.angle(q);
+
+			p = a.subtract(c);
+			q = b.subtract(c);
+
+			float angleC = p.angle(q);
+
+			face.normalA.set(face.normalA.add(normal.multiply(angleA)));
+			face.normalB.set(face.normalB.add(normal.multiply(angleB)));
+			face.normalC.set(face.normalC.add(normal.multiply(angleC)));
+		}
+
+		while (normals.hasNext()) {
+			Vec3 normal = normals.next();
+			normal.set(normal.normalized());
+		}
+	}
+
+	static class Face {
+		Vec3 vertexA;
+		Vec3 vertexB;
+		Vec3 vertexC;
+		Vec3 normalA;
+		Vec3 normalB;
+		Vec3 normalC;
+
+		public Face(
+				Vec3 vertexA,
+				Vec3 vertexB,
+				Vec3 vertexC,
+				Vec3 normalA,
+				Vec3 normalB,
+				Vec3 normalC) {
+
+			this.vertexA = vertexA;
+			this.vertexB = vertexB;
+			this.vertexC = vertexC;
+			this.normalA = normalA;
+			this.normalB = normalB;
+			this.normalC = normalC;
+		}
 	}
 }

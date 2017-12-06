@@ -1,47 +1,50 @@
 package world;
 
 import matrix.Ray3;
-
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import volume.AABB;
+import volume.Volumetric;
 
 /**
  * Created by Nyrmburk on 8/17/2016.
  */
-public class World<E> {
+public class World<T extends Volumetric> {
 
-	private List<Volumetric<E>> volumes = new ArrayList<>();
+//	private List<T> volumes = new ArrayList<>();
+	private BoundingVolumeHeirarchy<T> volumes = new BoundingVolumeHeirarchy<>();
 
-	public void raytrace(RaycastQuery<E> query, Ray3 ray) {
+	public void raytrace(RaycastQuery query, Ray3 ray) {
 
-		float fraction;
-		Iterator<Volumetric<E>> it = volumes.iterator();
-		while (it.hasNext()) {
-
-			Volumetric<E> volume = it.next();
-
-			IntersectionData intersection = volume.intersection(ray);
-			if (intersection != null) {
-
-				fraction = query.intersection(volume.getData(), intersection);
-				ray.length *= fraction;
+		volumes.query(new BoundingVolumeHeirarchy.bvhQuery<T>() {
+			float fraction;
+			@Override
+			public boolean shouldContinue(AABB bounds) {
+				return bounds.intersects(ray);
 			}
-		}
+
+			@Override
+			public void foundValue(T volume) {
+				IntersectionData intersection = volume.intersection(ray);
+				if (intersection != null) {
+
+					fraction = query.intersection(intersection);
+					ray.length *= fraction;
+				}
+			}
+		});
 	}
 
-	public void addVolume(Volumetric<E> volume) {
+	public void addVolume(T volume) {
 
 		volumes.add(volume);
 	}
 
-	public void removeVolume(Volumetric<E> volume) {
+	public void removeVolume(T volume) {
 
-		volumes.remove(volume);
+//		volumes.remove(volume);
 	}
 
 	public void clear() {
 
-		volumes.clear();
+//		volumes.clear();
 	}
 }

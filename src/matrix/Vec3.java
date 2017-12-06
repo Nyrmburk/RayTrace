@@ -33,6 +33,13 @@ public class Vec3 {
 		this(copy.x, copy.y, copy.z);
 	}
 
+	public Vec3 set(Vec3 newVec) {
+		x = newVec.x;
+		y = newVec.y;
+		z = newVec.z;
+		return this;
+	}
+
 	public Vec3 add(Vec3 toAdd) {
 
 		return new Vec3(x + toAdd.x, y + toAdd.y, z + toAdd.z);
