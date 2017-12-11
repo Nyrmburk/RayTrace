@@ -12,6 +12,5 @@ public interface Light {
 	Vec3 getSource();
 
 	// used for shading
-	Vec3 getColor();
-	float getBrightness(Vec3 direction);
+	Vec3 getLight();
 }

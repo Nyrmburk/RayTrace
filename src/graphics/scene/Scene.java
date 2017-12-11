@@ -10,7 +10,7 @@ import java.util.List;
 
 public class Scene extends World<Renderable> {
 
-	private List<Light> lights = new ArrayList<>();
+	public List<Light> lights = new ArrayList<>();
 	private List<Camera> cameras = new ArrayList<>(); // technically not needed so I don't know what I'm doing
 
 	public void addModel(Model model) {

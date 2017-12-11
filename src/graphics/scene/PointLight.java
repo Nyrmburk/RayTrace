@@ -7,8 +7,8 @@ public class PointLight implements Light {
 
 	private Vec3 point;
 
-	private Vec3 color;
-	private float brightness;
+	private Vec3 color = new Vec3();
+	float brightness;
 
 	public PointLight(Vec3 point, Vec3 color, float brightness) {
 		this.setPoint(point);
@@ -31,15 +31,14 @@ public class PointLight implements Light {
 	}
 
 	@Override
-	public Vec3 getColor() {
-		return color;
+	public Vec3 getLight() {
+		return color.multiply(brightness);
 	}
 
 	public void setColor(Vec3 color) {
-		this.color = color;
+		this.color.set(color);
 	}
 
-	@Override
 	public float getBrightness(Vec3 direction) {
 		return brightness;
 	}

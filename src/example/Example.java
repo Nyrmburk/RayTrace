@@ -17,6 +17,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.Random;
 
 /**
  * Created by Nyrmburk on 8/18/2016.
@@ -29,10 +30,12 @@ public class Example {
 
 		Renderer renderer = new Renderer(window);
 		renderer.setCamera(new PerspectiveCamera(75, 0.01f, 200));
-//		Transform.translate(renderer.getCamera().getTransform(), new Vec3(0, -5, -15f));
-		Transform.translate(renderer.getCamera().getTransform(), new Vec3(0, 0, -5f));
+		Transform.translate(renderer.getCamera().getTransform(), new Vec3(0, -5, -15f));
+//		Transform.translate(renderer.getCamera().getTransform(), new Vec3(0, 0, -5f));
 		Transform.rotate(renderer.getCamera().getTransform(), new Vec3(0, 1, 0), -0.4f);
 //		Transform.rotate(renderer.getCamera().getTransform(), new Vec3(0, 1, 0), 0.9f);
+
+//		Transform.rotate(renderer.getCamera().getTransform(), new Vec3(1, 0, 0), 0.7f);
 
 		Material material = new Material();
 		material.diffuseIntensity = new NumberSource(0.5f);
@@ -48,10 +51,12 @@ public class Example {
 //		Material checker = new Material();
 //		checker.diffuse = generateChecker();
 
+		float radius = 40;
+		float height = 0f;
 		Renderable floor1 = new TriangleRenderable(
-				new Vec3(-10, -1.5f, 10), // close left
-				new Vec3(10, -1.5f, 10), // close right
-				new Vec3(-10, -1.5f, -10), // far left
+				new Vec3(-radius, height, radius), // close left
+				new Vec3(radius, height, radius), // close right
+				new Vec3(-radius, height, -radius), // far left
 				new Vec3(0, 1, 0),
 				new Vec3(0, 1, 0),
 				new Vec3(0, 1, 0),
@@ -62,9 +67,9 @@ public class Example {
 		scene.addVolume(floor1);
 
 		Renderable floor2 = new TriangleRenderable(
-				new Vec3(10, -1.5f, 10), // close right
-				new Vec3(10, -1.5f, -10), // far right
-				new Vec3(-10, -1.5f, -10), // far left
+				new Vec3(radius, height, radius), // close right
+				new Vec3(radius, height, -radius), // far right
+				new Vec3(-radius, height, -radius), // far left
 				new Vec3(0, 1, 0),
 				new Vec3(0, 1, 0),
 				new Vec3(0, 1, 0),
@@ -74,8 +79,25 @@ public class Example {
 //		floor2.putData(checker);
 		scene.addVolume(floor2);
 
-		Light light = new PointLight(new Vec3(2, 3, 3), new Vec3(1, 1, 1), 10);
-		scene.addLight(light);
+		float heightVariance = 5;
+		float minheight = 10;
+		float brightnessVariance = 10;
+		Random r = new Random();
+		for (int i = 0; i < 3; i++) {
+			Vec3 point = new Vec3(
+					(r.nextFloat() * 2 - 1) * radius,
+					r.nextFloat() * heightVariance + height + minheight,
+					(r.nextFloat() * 2 - 1) * radius);
+			Vec3 color = new Vec3(r.nextFloat(), r.nextFloat(), r.nextFloat());
+			System.out.println(point + ", " + color);
+			Light light = new PointLight(point, color, r.nextFloat() * brightnessVariance);
+			scene.addLight(light);
+		}
+
+//		Light light = new PointLight(new Vec3(8, 7, 12), new Vec3(1, 1, 1), 10);
+//		scene.addLight(light);
+//		light = new PointLight(new Vec3(-2, 2, 3), new Vec3(0, 0, 1), 8);
+//		scene.addLight(light);
 
 		Model model = new Model(9);
 //		model.setVertex(0, new Vec3(-5, -4, -10));
@@ -88,7 +110,7 @@ public class Example {
 //		model.setVertex(7, new Vec3(5, -3, -15));
 //		model.setVertex(8, new Vec3(-5, -3, -15));
 		try {
-			model.load(new File("resources\\monkey.obj").toPath());
+			model.load(new File("resources\\bunny.obj").toPath());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
