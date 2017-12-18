@@ -148,6 +148,7 @@ public class OBJModelLoader {
 
 					if (face.length < 2)
 						continue;
+
 					if (!face[1].isEmpty()) {
 
 						textureIndices[i] = Integer.parseInt(face[1]) - 1;

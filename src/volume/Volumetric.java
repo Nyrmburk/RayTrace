@@ -6,9 +6,19 @@ import world.IntersectionData;
 /**
  * Created by Nyrmburk on 8/17/2016.
  */
-public interface Volumetric {
+public abstract class Volumetric<T> {
 
-	IntersectionData intersection(final Ray3 ray);
+	private T data;
 
-	AABB getBounds();
+	public T getData() {
+		return data;
+	}
+
+	public void setData(T data) {
+		this.data = data;
+	}
+
+	public abstract IntersectionData intersection(final Ray3 ray);
+
+	public abstract AABB getBounds();
 }

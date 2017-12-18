@@ -1,13 +1,15 @@
 package graphics;
 
-import graphics.renderdata.Renderable;
+import graphics.renderdata.RenderData;
 import graphics.scene.Camera;
 import graphics.scene.Light;
 import graphics.scene.PerspectiveCamera;
 import graphics.scene.Scene;
 import matrix.Mat4;
 import matrix.Ray3;
+import matrix.Vec2;
 import matrix.Vec3;
+import volume.Volumetric;
 import world.*;
 
 import java.awt.*;
@@ -42,7 +44,7 @@ public class Renderer {
 		Vec3[][] frame = new Vec3[viewport.height][viewport.width];
 		float maxBrightness = 0;
 
-		int threads = 8;
+		int threads = 7;
 		ExecutorService executor = Executors.newWorkStealingPool(threads);
 		Dimension size = new Dimension(40, 30);
 		for (int y = 0; y < viewport.height; y += size.height) {
@@ -68,19 +70,31 @@ public class Renderer {
 
 		for (int y = 0; y < viewport.height; y++) {
 			for (int x = 0; x < viewport.width; x++) {
-				maxBrightness = Math.max(maxBrightness, frame[y][x].length());
+				if (!Float.isFinite(frame[y][x].x) || !Float.isFinite(frame[y][x].y) || !Float.isFinite(frame[y][x].z))
+					continue;
+
+				maxBrightness = Math.max(maxBrightness, frame[y][x].x);
+				maxBrightness = Math.max(maxBrightness, frame[y][x].y);
+				maxBrightness = Math.max(maxBrightness, frame[y][x].z);
 			}
 		}
+
+		System.out.println(maxBrightness);
 
 		for (int y = 0; y < viewport.height; y++) {
 			for (int x = 0; x < viewport.width; x++) {
 //				System.out.println(frame[y][x]);
-				Vec3 pixel = frame[y][x].divide(maxBrightness);
-				pixel.x = (float) Math.sqrt(pixel.x);
-				pixel.y = (float) Math.sqrt(pixel.y);
-				pixel.z = (float) Math.sqrt(pixel.z);
+				Color color = null;
+				if (!Float.isFinite(frame[y][x].x) || !Float.isFinite(frame[y][x].y) || !Float.isFinite(frame[y][x].z)) {
+					color = new Color(0, 0, 0, 0);
+				} else {
+					Vec3 pixel = frame[y][x].divide(maxBrightness);
+					pixel.x = (float) Math.sqrt(pixel.x);
+					pixel.y = (float) Math.sqrt(pixel.y);
+					pixel.z = (float) Math.sqrt(pixel.z);
 //				System.out.println(pixel);
-				Color color = new Color(pixel.x, pixel.y, pixel.z);
+					color = new Color(pixel.x, pixel.y, pixel.z);
+				}
 				frameBuffer.setRGB(viewport.x + x, window.height - (viewport.y + y) - 1, color.getRGB());
 			}
 		}
@@ -105,17 +119,37 @@ public class Renderer {
 
 				Vec3 color = new Vec3();
 
-				if (query.closest != null) {
-					Vec3 normal = ((Renderable) query.closest.volumetric).calculateNormal(query.closest.uv);
+				IntersectionData<Volumetric<RenderData>> intersectionData = query.closest;
+
+				if (intersectionData != null) {
+
+					Volumetric<RenderData> volumetric = intersectionData.volumetric;
+					RenderData data = volumetric.getData();
+					Material material = data.getMaterial();
+					Vec2 uv = intersectionData.uv;
+					Vec2 textureUV = data.normalizeTextureUV(volumetric, uv);
+
+					Vec3 normal = data.calculateNormal(volumetric, uv);
+					if (material.normal != null) {
+						Vec3 materialNormal = material.normal.get(textureUV);
+						materialNormal.set(materialNormal.add(materialNormal));
+						materialNormal.set(materialNormal.subtract(new Vec3(1, 1, 1)).normalized());
+						normal = data.perturbNormal(volumetric, normal, materialNormal);
+					}
 
 					// lighting querys
 					for (Light light : scene.lights) {
 						AnyQuery lightQuery = new AnyQuery();
 						Vec3 photon = light.getLight(); // light color and brightness
-						Ray3 lightRay = new Ray3(query.closest.intersection, light.getSource());
+						Ray3 lightRay = new Ray3(intersectionData.intersection, light.getSource());
+
+						// skip backfacing lights
+						// cuts render time in half basically
+						if (normal.dot(lightRay.direction) < 0)
+							continue;
 
 						// make sure to exclude the source volumetric so as to avoid self-intersection
-						scene.raytrace(lightQuery, lightRay, query.closest.volumetric);
+						scene.raytrace(lightQuery, lightRay, volumetric);
 						if (!lightQuery.isIntersection) {
 							// clear path
 
@@ -125,11 +159,15 @@ public class Renderer {
 							photon.set(photon.multiply(facingRatio(lightRay.direction.negate(), normal)));
 
 							// specular reflection
-							Vec3 incoming = query.closest.source.direction;
+							Vec3 incoming = intersectionData.source.direction;
 
-							float phong = phong(incoming, normal, lightRay.direction, 50);
+							float glossiness = material.glossiness.get(textureUV);
+							float phong = phong(incoming, normal, lightRay.direction, glossiness);
 
-							Vec3 diffuse = new Vec3(0.92f, 0.76f, 0.47f);
+							phong *= material.specular.get(textureUV);
+
+							Vec3 diffuse = material.diffuse.get(textureUV);
+//							Vec3 diffuse = new Vec3(0.36f, 0.2f, 0.09f);
 							color.set(color.add(diffuse(diffuse, photon).add(photon.multiply(phong))));
 						}
 					}
@@ -161,7 +199,7 @@ public class Renderer {
 		return facingRatio;
 	}
 
-	private Color calculateColor(IntersectionData<Renderable> closest) {
+	private Color calculateColor(IntersectionData<Volumetric<RenderData>> closest) {
 
 		if (closest == null)
 			return new Color(0, 0, 0, 0);
@@ -169,7 +207,7 @@ public class Renderer {
 //		Vec3 triangleUVW = new Vec3(1 - (closest.uv.x + closest.uv.y), closest.uv.x, closest.uv.y);
 //		return new Color(triangleUVW.x, triangleUVW.y, triangleUVW.z);
 
-		Vec3 normal = closest.volumetric.calculateNormal(closest.uv);
+		Vec3 normal = closest.volumetric.getData().calculateNormal(closest.volumetric, closest.uv);
 		float facingRatio = normal.dot(closest.source.direction.negate());
 		facingRatio = Math.max(0, facingRatio);
 		return new Color(facingRatio, facingRatio, facingRatio);
@@ -208,12 +246,12 @@ public class Renderer {
 		frameBuffer = new BufferedImage(window.width, window.height, BufferedImage.TYPE_INT_ARGB);
 	}
 
-	private static class ClosestQuery implements RaycastQuery {
+	private static class ClosestQuery implements RaycastQuery<Volumetric<RenderData>> {
 
-		public IntersectionData closest;
+		public IntersectionData<Volumetric<RenderData>> closest;
 
 		@Override
-		public float intersection(IntersectionData intersection) {
+		public float intersection(IntersectionData<Volumetric<RenderData>> intersection) {
 
 			closest = intersection;
 			return intersection.depthFraction;

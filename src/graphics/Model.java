@@ -25,6 +25,8 @@ public class Model extends Resource {
 	private FloatBuffer normals;
 	private FloatBuffer texCoords;
 
+	Material material;
+
 	public Texture texture;
 
 	private String name;
@@ -139,8 +141,17 @@ public class Model extends Resource {
 
 		if (index > elementCapacity)
 			resize(texCoords, Math.max(elementCapacity * 2, index));
+		index *= 2;
 		texCoords.put(index, vector.x);
 		texCoords.put(index+1, vector.y);
+	}
+
+	public Material getMaterial() {
+		return material;
+	}
+
+	public void setMaterial(Material material) {
+		this.material = material;
 	}
 
 	private static void set3(FloatBuffer buffer, int index, Vec3 vec) {

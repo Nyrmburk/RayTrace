@@ -11,7 +11,7 @@ public class Mat3 {
 	//  0  3  6
 	//  1  4  7
 	//  2  5  8
-	public float[] m = new float[16];
+	public float[] m = new float[TOTAL_SIZE];
 
 	public Mat3() {
 	}
@@ -75,10 +75,15 @@ public class Mat3 {
 		return multiplied;
 	}
 
-	public Vec3 multiply(Vec3 vector) {
+	public Vec3 multiply(Vec3 vec) {
 
-		//TODO
-		return null;
+		Vec3 multiplied = new Vec3();
+
+		multiplied.x = vec.x * m[0] + vec.y * m[3] + vec.z * m[6];
+		multiplied.y = vec.x * m[1] + vec.y * m[4] + vec.z * m[7];
+		multiplied.z = vec.x * m[2] + vec.y * m[5] + vec.z * m[8];
+
+		return multiplied;
 	}
 
 	public Mat3 divide(float scalar) {

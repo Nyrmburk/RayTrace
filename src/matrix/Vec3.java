@@ -47,6 +47,7 @@ public class Vec3 {
 
 	public Vec3 subtract(Vec3 toSub) {
 
+
 		return new Vec3(x - toSub.x, y - toSub.y, z - toSub.z);
 	}
 
@@ -123,7 +124,7 @@ public class Vec3 {
 //		float x = (float) Math.cos(angle) * length + center.getX();
 //		float y = (float) Math.sin(angle) * length + center.getY();
 //
-//		setPosition(new Vec3(x, y, z));
+//		set(new Vec3(x, y, z));
 //	}
 
 	public void scale(Vec3 center, float amount) {

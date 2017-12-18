@@ -10,8 +10,8 @@ public class Material {
 
 	public ValueSource3 normal;
 	public ValueSource3 diffuse;
-	public ValueSource diffuseIntensity;
-	public ValueSource specularIntensity;
+	public ValueSource specular;
+	public ValueSource glossiness;
 	public ValueSource opacity;
 	public ValueSource refraction;
 	public ValueSource scatter;

@@ -9,7 +9,7 @@ import world.IntersectionData;
 /**
  * Created by Nyrmburk on 8/17/2016.
  */
-public class Triangle implements Volumetric {
+public class Triangle<T> extends Volumetric<T> {
 
 	private static final float EPSILON = 0.00001f;
 

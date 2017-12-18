@@ -4,7 +4,7 @@ import matrix.Ray3;
 import matrix.Vec3;
 import world.IntersectionData;
 
-public class Sphere implements Volumetric {
+public class Sphere<T> extends Volumetric<T> {
 
 	private Vec3 center;
 	private float radius;
