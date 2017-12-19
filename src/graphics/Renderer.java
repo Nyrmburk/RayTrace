@@ -88,6 +88,7 @@ public class Renderer {
 				if (!Float.isFinite(frame[y][x].x) || !Float.isFinite(frame[y][x].y) || !Float.isFinite(frame[y][x].z)) {
 					color = new Color(0, 0, 0, 0);
 				} else {
+//					Vec3 pixel = frame[y][x];
 					Vec3 pixel = frame[y][x].divide(maxBrightness);
 					pixel.x = (float) Math.sqrt(pixel.x);
 					pixel.y = (float) Math.sqrt(pixel.y);
@@ -102,7 +103,7 @@ public class Renderer {
 
 	private void renderKernel(Scene scene, Mat4 inverseMatrix, Vec3[][] frame, Rectangle area) {
 
-		ClosestQuery query = new ClosestQuery();
+		ClosestQuery<Volumetric<RenderData>> query = new ClosestQuery<>();
 		Vec3 near, far;
 
 		for (int y = area.y; y < area.y + area.height; y++) {
@@ -139,7 +140,7 @@ public class Renderer {
 
 					// lighting querys
 					for (Light light : scene.lights) {
-						AnyQuery lightQuery = new AnyQuery();
+						AnyQuery<Volumetric<RenderData>> lightQuery = new AnyQuery<>();
 						Vec3 photon = light.getLight(); // light color and brightness
 						Ray3 lightRay = new Ray3(intersectionData.intersection, light.getSource());
 
@@ -246,24 +247,24 @@ public class Renderer {
 		frameBuffer = new BufferedImage(window.width, window.height, BufferedImage.TYPE_INT_ARGB);
 	}
 
-	private static class ClosestQuery implements RaycastQuery<Volumetric<RenderData>> {
+	private static class ClosestQuery<T extends Volumetric> implements RaycastQuery<T> {
 
-		public IntersectionData<Volumetric<RenderData>> closest;
+		public IntersectionData<T> closest;
 
 		@Override
-		public float intersection(IntersectionData<Volumetric<RenderData>> intersection) {
+		public float intersection(IntersectionData<T> intersection) {
 
 			closest = intersection;
 			return intersection.depthFraction;
 		}
 	}
 
-	private static class AnyQuery implements RaycastQuery {
+	private static class AnyQuery<T extends Volumetric> implements RaycastQuery<T> {
 
 		public boolean isIntersection = false;
 
 		@Override
-		public float intersection(IntersectionData intersection) {
+		public float intersection(IntersectionData<T> intersection) {
 			isIntersection = true;
 			return 0;
 		}

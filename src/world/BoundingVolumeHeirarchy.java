@@ -1,5 +1,6 @@
 package world;
 
+import matrix.Mat4;
 import volume.AABB;
 import volume.Volumetric;
 
@@ -40,7 +41,6 @@ public class BoundingVolumeHeirarchy<E extends Volumetric> {
 			// no value has been set for this node
 			this.value = value;
 			this.bounds = value.getBounds();
-			return;
 		} else if (left == null) {
 
 			// filling out the child nodes

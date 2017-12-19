@@ -4,6 +4,14 @@
 .idea/*
 *.iml
 
+# images
+*.bmp
+*.jpg
+*.png
+
+# models
+*.obj
+
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
 

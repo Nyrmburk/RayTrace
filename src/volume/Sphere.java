@@ -1,6 +1,8 @@
 package volume;
 
+import matrix.Mat4;
 import matrix.Ray3;
+import matrix.Transform;
 import matrix.Vec3;
 import world.IntersectionData;
 
@@ -19,6 +21,15 @@ public class Sphere<T> extends Volumetric<T> {
 	}
 	public float getRadius() {
 		return radius;
+	}
+
+	@Override
+	public Volumetric<T> transform(Mat4 transform) {
+
+		Sphere<T> sphere = new Sphere<>(transform.multiply(center, 1), radius * transform.m[15]);
+		sphere.setData(this.getData());
+
+		return sphere;
 	}
 
 	@Override

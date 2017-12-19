@@ -1,9 +1,6 @@
 package volume;
 
-import matrix.Ray3;
-import matrix.Vec2;
-import matrix.Vec3;
-import matrix.Vec4;
+import matrix.*;
 import world.IntersectionData;
 
 /**
@@ -20,6 +17,18 @@ public class Triangle<T> extends Volumetric<T> {
 		this.a = a;
 		this.b = b;
 		this.c = c;
+	}
+
+	@Override
+	public Volumetric<T> transform(Mat4 transform) {
+
+		Triangle<T> triangle = new Triangle<>(
+				transform.multiply(a, 1),
+				transform.multiply(b, 1),
+				transform.multiply(c, 1));
+		triangle.setData(this.getData());
+
+		return triangle;
 	}
 
 	@Override

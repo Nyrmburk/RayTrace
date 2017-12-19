@@ -8,6 +8,7 @@ import graphics.scene.PerspectiveCamera;
 import graphics.scene.PointLight;
 import graphics.scene.Scene;
 import graphics.value.TextureSource;
+import matrix.Mat4;
 import matrix.Transform;
 import matrix.Vec2;
 import matrix.Vec3;
@@ -27,8 +28,9 @@ public class Example {
 
 	public static void main(String[] args) {
 
-		Rectangle window = new Rectangle(640, 480);
 //		Rectangle window = new Rectangle(320, 240);
+//		Rectangle window = new Rectangle(640, 480);
+		Rectangle window = new Rectangle(1920, 1080);
 //		Rectangle window = new Rectangle(3840,2160);
 //		Rectangle window = new Rectangle(7680,4320);
 
@@ -138,14 +140,18 @@ public class Example {
 
 		Model model = new Model();
 		try {
-			model.load(new File("resources\\bunnyUV.obj").toPath());
+			model.load(new File("resources\\sphere.obj").toPath());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		model.setMaterial(material);
 
+
+		Mat4 transform = Transform.identity();
+		Transform.translate(transform, new Vec3(0, 2,  0));
+
 		long time = System.currentTimeMillis();
-		scene.addModel(model);
+		scene.addModel(model, transform);
 		System.out.println("build:" + (System.currentTimeMillis() - time) + "ms");
 
 		time = System.currentTimeMillis();

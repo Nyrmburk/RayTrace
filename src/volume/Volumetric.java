@@ -1,5 +1,6 @@
 package volume;
 
+import matrix.Mat4;
 import matrix.Ray3;
 import world.IntersectionData;
 
@@ -17,6 +18,8 @@ public abstract class Volumetric<T> {
 	public void setData(T data) {
 		this.data = data;
 	}
+
+	public abstract Volumetric<T> transform(Mat4 transform);
 
 	public abstract IntersectionData intersection(final Ray3 ray);
 
