@@ -127,6 +127,10 @@ public class Renderer {
 					Volumetric<RenderData> volumetric = intersectionData.volumetric;
 					RenderData data = volumetric.getData();
 					Material material = data.getMaterial();
+					if (material == null) {
+						material = new Material();
+						material.diffuse = uv -> new Vec3(1, 1, 1);
+					}
 					Vec2 uv = intersectionData.uv;
 					Vec2 textureUV = data.normalizeTextureUV(volumetric, uv);
 

@@ -49,8 +49,7 @@ public class OBJModelLoader {
 				for (int i = 0; i < vertices.size(); i++)
 					normals.add(new Vec3());
 
-				for (Integer index : vertexIndices)
-					normalIndices.add(index);
+				normalIndices.addAll(vertexIndices);
 
 				Model.generateNormals(new Iterator<Model.Face>() {
 					int index = 0;

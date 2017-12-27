@@ -29,19 +29,20 @@ public class Example {
 	public static void main(String[] args) {
 
 //		Rectangle window = new Rectangle(320, 240);
-//		Rectangle window = new Rectangle(640, 480);
-		Rectangle window = new Rectangle(1920, 1080);
+		Rectangle window = new Rectangle(640, 480);
+//		Rectangle window = new Rectangle(1920, 1080);
 //		Rectangle window = new Rectangle(3840,2160);
 //		Rectangle window = new Rectangle(7680,4320);
 
 		Renderer renderer = new Renderer(window);
-		renderer.setCamera(new PerspectiveCamera(75, 0.01f, 200));
+		renderer.setCamera(new PerspectiveCamera(45, 0.01f, 200));
 		Transform.translate(renderer.getCamera().getTransform(), new Vec3(0, -5, -15f));
 //		Transform.translate(renderer.getCamera().getTransform(), new Vec3(0, 0, -5f));
 		Transform.rotate(renderer.getCamera().getTransform(), new Vec3(0, 1, 0), -0.4f);
 //		Transform.rotate(renderer.getCamera().getTransform(), new Vec3(0, 1, 0), 0.9f);
 
 //		Transform.rotate(renderer.getCamera().getTransform(), new Vec3(1, 0, 0), 0.7f);
+
 
 		BufferedImage texture = null;
 		BufferedImage normals = null;
@@ -55,7 +56,7 @@ public class Example {
 		}
 
 		Material material = new Material();
-//		Vec3 diffuse = new Vec3(1f, 1f, 1f);
+		Vec3 diffuse = new Vec3(1f, 1f, 1f);
 //		Vec3 diffuse = new Vec3(56/255f, 62/255f, 42/255f);
 //		Vec3 diffuse = new Vec3(0.95f, 0.05f, 0.05f);
 //		Vec3 diffuse = new Vec3(0.005f, 0.005f, 0.005f);
@@ -146,12 +147,8 @@ public class Example {
 		}
 		model.setMaterial(material);
 
-
-		Mat4 transform = Transform.identity();
-		Transform.translate(transform, new Vec3(0, 2,  0));
-
 		long time = System.currentTimeMillis();
-		scene.addModel(model, transform);
+		scene.addModel(model);
 		System.out.println("build:" + (System.currentTimeMillis() - time) + "ms");
 
 		time = System.currentTimeMillis();
