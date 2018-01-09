@@ -13,7 +13,7 @@ public class Material {
 	public ValueSource3 emmission;
 	public ValueSource3 normal;
 	public ValueSource specular = uv -> 1;
-	public ValueSource glossiness = uv -> 5;
+	public ValueSource roughness = uv -> 1;
 	public ValueSource opacity;
 	public ValueSource refraction;
 	public ValueSource scatter;

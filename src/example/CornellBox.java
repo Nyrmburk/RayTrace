@@ -33,21 +33,6 @@ public class CornellBox {
 
 		Scene scene = new Scene();
 
-		Material material = new Material();
-
-		material.diffuse = uv -> new Vec3(1, 1, 1);
-		material.specular = uv -> 0.8f;
-		material.glossiness = uv -> 3;
-
-//		Model model = null;
-//		try {
-//			model = new OBJModelLoader().load(Paths.get("resources/cornell-box.obj"));
-//		} catch (IOException e) {
-//			e.printStackTrace();
-//		}
-//		model.setMaterial(material);
-//		scene.addModel(model);
-
 		for (Triangle<RenderData> tri : getCornellBox())
 			scene.addVolume(tri);
 
@@ -69,19 +54,23 @@ public class CornellBox {
 
 		List<Triangle<RenderData>> tris = new ArrayList<>();
 
-		float specular = 0.05f;
+		float specular = 0.1f;
+		float roughness = 0.9f;
 
 		Material white = new Material();
 		white.diffuse = uv -> new Vec3(0.7295f, 0.7355f, 0.729f);
 		white.specular = uv -> specular;
+		white.roughness = uv -> roughness;
 
 		Material red = new Material();
 		red.diffuse = uv -> new Vec3(0.611f, 0.0555f, 0.062f);
 		red.specular = uv -> specular;
+		red.roughness = uv -> roughness;
 
 		Material green = new Material();
 		green.diffuse = uv -> new Vec3(0.117f, 0.4125f, 0.115f);
 		green.specular = uv -> specular;
+		green.roughness = uv -> roughness;
 
 		Material light = new Material();
 		light.diffuse = uv -> new Vec3(0.78f, 0.78f, 0.78f);

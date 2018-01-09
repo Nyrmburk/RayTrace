@@ -121,4 +121,30 @@ public class Transform extends Mat4 {
 		matrix.m = matrix.multiply(result).m;
 		translate(matrix, position.negate());
 	}
+
+	public Mat3 createCoordinateSystem(Vec3 normal) {
+
+		Vec3 tangent, bitangent;
+		if (Math.abs(normal.x) > Math.abs(normal.y)) {
+			tangent = new Vec3(normal.z, 0, -normal.x).divide(
+					(float) Math.sqrt(normal.x * normal.x + normal.z * normal.z));
+		} else {
+			tangent = new Vec3(0, -normal.z, normal.y).divide(
+					(float) Math.sqrt(normal.y * normal.y + normal.z * normal.z));
+		}
+
+		bitangent = normal.cross(tangent);
+
+		return new Mat3(
+				tangent.x,
+				tangent.y,
+				tangent.z,
+				bitangent.x,
+				bitangent.y,
+				bitangent.z,
+				normal.x,
+				normal.y,
+				normal.z
+		);
+	}
 }

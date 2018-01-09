@@ -115,110 +115,131 @@ public class Renderer {
 				near = inverseMatrix.multiply(new Vec3(u, v, -1), 1);
 				far = inverseMatrix.multiply(new Vec3(u, v, 1), 1);
 
-				query.closest = null;
-				scene.raytrace(query, new Ray3(near, far));
-
-				Vec3 color = new Vec3();
-
-				IntersectionData<Volumetric<RenderData>> intersectionData = query.closest;
-
-				if (intersectionData != null) {
-
-					Volumetric<RenderData> volumetric = intersectionData.volumetric;
-					RenderData data = volumetric.getData();
-					Material material = data.getMaterial();
-					if (material == null) {
-						material = new Material();
-						material.diffuse = uv -> new Vec3(1, 1, 1);
-					}
-					Vec2 uv = intersectionData.uv;
-					Vec2 textureUV = data.normalizeTextureUV(volumetric, uv);
-
-					Vec3 normal = data.calculateNormal(volumetric, uv);
-					if (material.normal != null) {
-						Vec3 materialNormal = material.normal.get(textureUV);
-						materialNormal.set(materialNormal.add(materialNormal));
-						materialNormal.set(materialNormal.subtract(new Vec3(1, 1, 1)).normalized());
-						normal = data.perturbNormal(volumetric, normal, materialNormal);
-					}
-
-					// lighting querys
-					for (Light light : scene.lights) {
-						AnyQuery<Volumetric<RenderData>> lightQuery = new AnyQuery<>();
-						Vec3 photon = light.getLight(); // light color and brightness
-						Ray3 lightRay = new Ray3(intersectionData.intersection, light.getSource());
-
-						// skip backfacing lights
-						// cuts render time in half basically
-						if (normal.dot(lightRay.direction) < 0)
-							continue;
-
-						// make sure to exclude the source volumetric so as to avoid self-intersection
-						scene.raytrace(lightQuery, lightRay, volumetric);
-						if (!lightQuery.isIntersection) {
-							// clear path
-
-							// surface area of a sphere
-							float falloff = 4 * ((float) Math.PI) * lightRay.length * lightRay.length;
-							photon = photon.divide(falloff);
-							photon.set(photon.multiply(facingRatio(lightRay.direction.negate(), normal)));
-
-							// specular reflection
-							Vec3 incoming = intersectionData.source.direction;
-
-							float glossiness = material.glossiness.get(textureUV);
-							float phong = phong(incoming, normal, lightRay.direction, glossiness);
-
-							phong *= material.specular.get(textureUV);
-
-							Vec3 diffuse = material.diffuse.get(textureUV);
-//							Vec3 diffuse = new Vec3(0.36f, 0.2f, 0.09f);
-							color.set(color.add(diffuse(diffuse, photon).add(photon.multiply(phong))));
-						}
-					}
-				}
-				frame[y][x] = color;
+				frame[y][x] = raycast(scene, new Ray3(near, far), 1, 1);
 			}
 		}
 	}
 
-	private float phong(Vec3 incomingDirection, Vec3 normal, Vec3 lightDirection, float n) {
+	private Vec3 raycast(Scene scene, Ray3 ray, int samples, int depth) {
 
-		Vec3 hmm = normal.multiply(incomingDirection.dot(normal));
-		Vec3 reflection =  incomingDirection.subtract(hmm.add(hmm));
-		float specular = Math.max(0, reflection.dot(lightDirection));
-		return (float) Math.pow(specular, n);
+		ClosestQuery<Volumetric<RenderData>> query = new ClosestQuery<>();
+
+		scene.raytrace(query, ray);
+
+		Vec3 color = new Vec3();
+
+		IntersectionData<Volumetric<RenderData>> intersectionData = query.closest;
+
+		if (intersectionData != null) {
+
+			Volumetric<RenderData> volumetric = intersectionData.volumetric;
+			RenderData data = volumetric.getData();
+			Material material = data.getMaterial();
+			if (material == null) {
+				material = new Material();
+				material.diffuse = uv -> new Vec3(1, 1, 1);
+			}
+			Vec2 uv = intersectionData.uv;
+			Vec2 textureUV = data.normalizeTextureUV(volumetric, uv);
+
+			Vec3 normal = data.calculateNormal(volumetric, uv);
+			if (material.normal != null) {
+				Vec3 materialNormal = material.normal.get(textureUV);
+				materialNormal.set(materialNormal.add(materialNormal));
+				materialNormal.set(materialNormal.subtract(new Vec3(1, 1, 1)).normalized());
+				normal = data.perturbNormal(volumetric, normal, materialNormal);
+			}
+
+			float incomingAngle = normal.dot(intersectionData.source.direction.negate());
+
+			// lighting querys
+			for (Light light : scene.lights) {
+				AnyQuery<Volumetric<RenderData>> lightQuery = new AnyQuery<>();
+				Vec3 photon = light.getLight(); // light color and brightness
+				Ray3 lightRay = new Ray3(intersectionData.intersection, light.getSource());
+
+				float outgoingAngle = normal.dot(lightRay.direction);
+
+				// skip backfacing lights
+				// cuts render time in half basically
+				if (outgoingAngle < 0)
+					continue;
+
+				// make sure to exclude the source volumetric so as to avoid self-intersection
+				scene.raytrace(lightQuery, lightRay, volumetric);
+				if (!lightQuery.isIntersection) {
+					// clear path
+
+					// surface area of a sphere
+					float falloff = 4 * ((float) Math.PI) * lightRay.length * lightRay.length;
+					photon = photon.divide(falloff);
+					photon.set(photon.multiply(Math.max(0, outgoingAngle)));
+
+					// specular reflection
+					Vec3 incoming = intersectionData.source.direction.negate();
+
+					Vec3 halfAngle = incoming.add(lightRay.direction).normalized();
+
+					float roughness = material.roughness.get(textureUV);
+
+					float brdf = brdf(incomingAngle, outgoingAngle, incoming, normal, halfAngle, roughness);
+					if (!Float.isFinite(brdf))
+						brdf = 0;
+
+					float specular = brdf * material.specular.get(textureUV);
+
+					Vec3 diffuse = material.diffuse.get(textureUV);
+					color.set(color.add(diffuse(diffuse, photon).add(photon.multiply(specular))));
+				}
+			}
+		}
+
+		return color;
 	}
 
-	float brdf(float incomingAngle, float outgoingAngle) {
-		return 1;
+	float brdf(float incomingAngle, float outgoingAngle,
+			   Vec3 source, Vec3 normal, Vec3 halfAngle, float roughness) {
+		return cookTorrance(incomingAngle, outgoingAngle, source, normal, halfAngle, roughness);
+	}
+
+	float cookTorrance(float incomingAngle, float outgoingAngle,
+					   Vec3 source, Vec3 normal, Vec3 halfAngle, float roughness) {
+		float distribution = beckmann(normal, halfAngle, roughness);
+		float fresnel = fresnel(incomingAngle, roughness);
+		float g = attenuation(incomingAngle, outgoingAngle, source, normal, halfAngle);
+
+		return (distribution * fresnel * g) / (4 * incomingAngle * outgoingAngle);
+	}
+
+	float beckmann(Vec3 normal, Vec3 halfAngle, float roughness) {
+		float alpha = (float) Math.acos(normal.dot(halfAngle));
+
+		float tanAlpha2 = (float) Math.tan(alpha);
+		tanAlpha2 = tanAlpha2 * tanAlpha2;
+		float roughness2 = roughness * roughness;
+
+		float cosAlpha4 = (float) Math.cos(alpha); // cos(alpha)
+		cosAlpha4 *= cosAlpha4; // cos^2(alpha)
+		cosAlpha4 *= cosAlpha4; // cos^4(alpha)
+
+		return ((float) Math.exp(-tanAlpha2 / roughness2)) / (((float) Math.PI) * roughness2 * cosAlpha4);
+	}
+
+	float fresnel(float incomingAngle, float roughness) {
+		float oneMinusAngle = (1 - incomingAngle);
+		return roughness + (1 - roughness) *
+				(oneMinusAngle * oneMinusAngle * oneMinusAngle * oneMinusAngle * oneMinusAngle);
+	}
+
+	float attenuation(float incomingAngle, float outgoingAngle, Vec3 source, Vec3 normal, Vec3 halfAngle) {
+
+		float attenuation = 2 * halfAngle.dot(normal) * Math.min(incomingAngle, outgoingAngle) / source.dot(halfAngle);
+
+		return Math.min(1, attenuation);
 	}
 
 	private Vec3 diffuse(Vec3 diffuse, Vec3 light) {
 		return diffuse.multiply(light);
-	}
-
-	private float facingRatio(Vec3 view, Vec3 normal) {
-		float facingRatio = normal.dot(view.negate());
-		facingRatio = Math.max(0, facingRatio);
-		return facingRatio;
-	}
-
-	private Color calculateColor(IntersectionData<Volumetric<RenderData>> closest) {
-
-		if (closest == null)
-			return new Color(0, 0, 0, 0);
-
-//		Vec3 triangleUVW = new Vec3(1 - (closest.uv.x + closest.uv.y), closest.uv.x, closest.uv.y);
-//		return new Color(triangleUVW.x, triangleUVW.y, triangleUVW.z);
-
-		Vec3 normal = closest.volumetric.getData().calculateNormal(closest.volumetric, closest.uv);
-		float facingRatio = normal.dot(closest.source.direction.negate());
-		facingRatio = Math.max(0, facingRatio);
-		return new Color(facingRatio, facingRatio, facingRatio);
-//		return new Color((normal.x+1)/2, (normal.y+1)/2, (normal.z+1)/2);
-
-//		return Color.getHSBColor(0, 0, closest.source.length / 20f);
 	}
 
 	public Camera getCamera() {

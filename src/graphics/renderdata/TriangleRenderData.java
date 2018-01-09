@@ -70,7 +70,7 @@ public class TriangleRenderData extends RenderData {
 	}
 
 	@Override
-	public Vec3 perturbNormal(Volumetric<RenderData> volumetric, Vec3 normal, Vec3 tangentNormal) {
+	public Vec3 perturbNormal(Volumetric<RenderData> volumetric, Vec3 normal, Vec3 perturbation) {
 
 		Triangle<RenderData> triangle = (Triangle<RenderData>) volumetric;
 
@@ -94,6 +94,6 @@ public class TriangleRenderData extends RenderData {
 				normal.y,
 				normal.z);
 
-		return rotation.multiply(tangentNormal).normalized();
+		return rotation.multiply(perturbation).normalized();
 	}
 }

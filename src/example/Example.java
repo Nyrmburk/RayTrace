@@ -8,7 +8,6 @@ import graphics.scene.PerspectiveCamera;
 import graphics.scene.PointLight;
 import graphics.scene.Scene;
 import graphics.value.TextureSource;
-import matrix.Mat4;
 import matrix.Transform;
 import matrix.Vec2;
 import matrix.Vec3;
@@ -35,7 +34,7 @@ public class Example {
 //		Rectangle window = new Rectangle(7680,4320);
 
 		Renderer renderer = new Renderer(window);
-		renderer.setCamera(new PerspectiveCamera(45, 0.01f, 200));
+		renderer.setCamera(new PerspectiveCamera(75, 0.01f, 200));
 		Transform.translate(renderer.getCamera().getTransform(), new Vec3(0, -5, -15f));
 //		Transform.translate(renderer.getCamera().getTransform(), new Vec3(0, 0, -5f));
 		Transform.rotate(renderer.getCamera().getTransform(), new Vec3(0, 1, 0), -0.4f);
@@ -68,8 +67,8 @@ public class Example {
 		material.diffuse = new TextureSource(texture);
 //		material.diffuse = uv -> diffuse;
 
-		material.specular = uv -> 0.8f;
-		material.glossiness = uv -> 3;
+		material.specular = uv -> 0.5f;
+		material.roughness = uv -> 0.3f;
 
 		material.normal = new TextureSource(normals);
 //		material.normal = uv -> new Vec3(0.5f, 0.5f, 1f);
@@ -141,7 +140,8 @@ public class Example {
 
 		Model model = new Model();
 		try {
-			model.load(new File("resources\\sphere.obj").toPath());
+//			model.load(new File("resources\\bunnyUV.obj").toPath());
+			model.load(new File("resources\\bunnyUV.obj").toPath());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
