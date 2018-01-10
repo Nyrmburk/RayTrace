@@ -5,17 +5,16 @@ import graphics.scene.Camera;
 import graphics.scene.Light;
 import graphics.scene.PerspectiveCamera;
 import graphics.scene.Scene;
-import matrix.Mat4;
-import matrix.Ray3;
-import matrix.Vec2;
-import matrix.Vec3;
+import matrix.*;
 import volume.Volumetric;
 import world.*;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -35,7 +34,7 @@ public class Renderer {
 		setViewport(getWindow());
 	}
 
-	public void render(Scene scene) {
+	public void render(Scene scene, int samples, int depth) {
 
 		Mat4 projection = camera.getProjection(viewport.getSize()).multiply(camera.getTransform());
 		Mat4 inverseMatrix = projection.inverse();
@@ -44,7 +43,7 @@ public class Renderer {
 		Vec3[][] frame = new Vec3[viewport.height][viewport.width];
 		float maxBrightness = 0;
 
-		int threads = 7;
+		int threads = Runtime.getRuntime().availableProcessors();
 		ExecutorService executor = Executors.newWorkStealingPool(threads);
 		Dimension size = new Dimension(40, 30);
 		for (int y = 0; y < viewport.height; y += size.height) {
@@ -56,7 +55,7 @@ public class Renderer {
 
 				executor.execute(() -> {
 //					System.out.println(area.x + ", " + area.y);
-					renderKernel(scene, inverseMatrix, frame, area);
+					renderKernel(scene, samples, depth, inverseMatrix, frame, area);
 				});
 			}
 		}
@@ -80,28 +79,35 @@ public class Renderer {
 		}
 
 		System.out.println(maxBrightness);
+		maxBrightness = 2;
 
 		for (int y = 0; y < viewport.height; y++) {
 			for (int x = 0; x < viewport.width; x++) {
 //				System.out.println(frame[y][x]);
-				Color color = null;
-				if (!Float.isFinite(frame[y][x].x) || !Float.isFinite(frame[y][x].y) || !Float.isFinite(frame[y][x].z)) {
-					color = new Color(0, 0, 0, 0);
-				} else {
-//					Vec3 pixel = frame[y][x];
-					Vec3 pixel = frame[y][x].divide(maxBrightness);
-					pixel.x = (float) Math.sqrt(pixel.x);
-					pixel.y = (float) Math.sqrt(pixel.y);
-					pixel.z = (float) Math.sqrt(pixel.z);
-//				System.out.println(pixel);
-					color = new Color(pixel.x, pixel.y, pixel.z);
-				}
+//				Vec3 pixel = frame[y][x];
+				Vec3 pixel = frame[y][x].divide(maxBrightness);
+				pixel.x = (float) Math.sqrt(clamp(pixel.x));
+				pixel.y = (float) Math.sqrt(clamp(pixel.y));
+				pixel.z = (float) Math.sqrt(clamp(pixel.z));
+
+				Color color = new Color(pixel.x, pixel.y, pixel.z);
 				frameBuffer.setRGB(viewport.x + x, window.height - (viewport.y + y) - 1, color.getRGB());
 			}
 		}
 	}
 
-	private void renderKernel(Scene scene, Mat4 inverseMatrix, Vec3[][] frame, Rectangle area) {
+	private float clamp(float a) {
+
+		if (Float.isNaN(a) || a < 0) {
+			a = 0;
+		} else if (a > 1) {
+			a = 1;
+		}
+
+		return a;
+	}
+
+	private void renderKernel(Scene scene, int samples, int depth, Mat4 inverseMatrix, Vec3[][] frame, Rectangle area) {
 
 		ClosestQuery<Volumetric<RenderData>> query = new ClosestQuery<>();
 		Vec3 near, far;
@@ -115,16 +121,16 @@ public class Renderer {
 				near = inverseMatrix.multiply(new Vec3(u, v, -1), 1);
 				far = inverseMatrix.multiply(new Vec3(u, v, 1), 1);
 
-				frame[y][x] = raycast(scene, new Ray3(near, far), 1, 1);
+				frame[y][x] = raycast(scene, new Ray3(near, far), samples, depth);
 			}
 		}
 	}
 
-	private Vec3 raycast(Scene scene, Ray3 ray, int samples, int depth) {
+	private Vec3 raycast(Scene scene, Ray3 ray, int samples, int depth, Object... ignore) {
 
 		ClosestQuery<Volumetric<RenderData>> query = new ClosestQuery<>();
 
-		scene.raytrace(query, ray);
+		scene.raytrace(query, ray, ignore);
 
 		Vec3 color = new Vec3();
 
@@ -150,7 +156,25 @@ public class Renderer {
 				normal = data.perturbNormal(volumetric, normal, materialNormal);
 			}
 
-			float incomingAngle = normal.dot(intersectionData.source.direction.negate());
+			Vec3 incoming = intersectionData.source.direction.negate();
+			float incomingAngle = normal.dot(incoming);
+
+			if (depth --> 0) {
+				for (int i = 0; i < samples; i++) {
+					Mat3 rotation = Transform.createCoordinateSystem(normal);
+					Random random = ThreadLocalRandom.current();
+					Vec3 perturbation = sampleHemisphere(random.nextFloat(), random.nextFloat());
+					Vec3 perturbed = rotation.multiply(perturbation).normalized();
+					Ray3 bounceRay = new Ray3(intersectionData.intersection, perturbed, 100000);
+					Vec3 resultColor = raycast(scene, bounceRay, samples, depth, volumetric);
+					resultColor = shade(
+							incoming, bounceRay.direction, normal,
+							incomingAngle, normal.dot(bounceRay.direction),
+							resultColor, material, textureUV);
+					color.set(color.add(resultColor));
+				}
+				color.set(color.divide(samples));
+			}
 
 			// lighting querys
 			for (Light light : scene.lights) {
@@ -175,26 +199,40 @@ public class Renderer {
 					photon = photon.divide(falloff);
 					photon.set(photon.multiply(Math.max(0, outgoingAngle)));
 
-					// specular reflection
-					Vec3 incoming = intersectionData.source.direction.negate();
-
-					Vec3 halfAngle = incoming.add(lightRay.direction).normalized();
-
-					float roughness = material.roughness.get(textureUV);
-
-					float brdf = brdf(incomingAngle, outgoingAngle, incoming, normal, halfAngle, roughness);
-					if (!Float.isFinite(brdf))
-						brdf = 0;
-
-					float specular = brdf * material.specular.get(textureUV);
-
-					Vec3 diffuse = material.diffuse.get(textureUV);
-					color.set(color.add(diffuse(diffuse, photon).add(photon.multiply(specular))));
+					Vec3 shaded = shade(
+							incoming, lightRay.direction, normal,
+							incomingAngle, outgoingAngle,
+							photon, material, textureUV);
+					color.set(color.add(shaded));
 				}
 			}
 		}
 
 		return color;
+	}
+
+	Vec3 shade(Vec3 incoming, Vec3 outgoing, Vec3 normal,
+			   float incomingAngle, float outgoingAngle,
+			   Vec3 light, Material material, Vec2 uv) {
+
+		// specular reflection
+		Vec3 halfAngle = incoming.add(outgoing).normalized();
+
+		float roughness = material.roughness.get(uv);
+
+		float brdf = brdf(incomingAngle, outgoingAngle, incoming, normal, halfAngle, roughness);
+		if (!Float.isFinite(brdf))
+			brdf = 0;
+
+		float specular = brdf * material.specular.get(uv);
+
+		Vec3 diffuse = material.diffuse.get(uv);
+
+		Vec3 emission = new Vec3();
+		if (material.emmission != null)
+			emission = material.emmission.get(uv);
+
+		return diffuse(diffuse, light).add(light.multiply(specular)).add(emission);
 	}
 
 	float brdf(float incomingAngle, float outgoingAngle,
@@ -236,6 +274,15 @@ public class Renderer {
 		float attenuation = 2 * halfAngle.dot(normal) * Math.min(incomingAngle, outgoingAngle) / source.dot(halfAngle);
 
 		return Math.min(1, attenuation);
+	}
+
+	private Vec3 sampleHemisphere(float a, float b) {
+
+		float sinTheta = (float) Math.sqrt(1 - a * a);
+		float phi = 2 * (float) Math.PI * b;
+		float x = sinTheta * (float) Math.cos(phi);
+		float z = sinTheta * (float) Math.sin(phi);
+		return new Vec3(x, z, a);
 	}
 
 	private Vec3 diffuse(Vec3 diffuse, Vec3 light) {

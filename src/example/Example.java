@@ -30,7 +30,7 @@ public class Example {
 //		Rectangle window = new Rectangle(320, 240);
 		Rectangle window = new Rectangle(640, 480);
 //		Rectangle window = new Rectangle(1920, 1080);
-//		Rectangle window = new Rectangle(3840,2160);
+//		Rectangle window = new Rectangle(3840, 2160);
 //		Rectangle window = new Rectangle(7680,4320);
 
 		Renderer renderer = new Renderer(window);
@@ -64,13 +64,13 @@ public class Example {
 //		Vec3 colorB = diffuse.multiply(0.5f);
 //		material.diffuse = uv -> ((uv.x * scale) % 1 > 0.5f ^ (uv.y * scale) % 1 < 0.5f) ? colorA : colorB;
 //		material.diffuse = uv -> new Vec3(1 - (uv.x + uv.y), uv.x, uv.y);
-		material.diffuse = new TextureSource(texture);
-//		material.diffuse = uv -> diffuse;
+//		material.diffuse = new TextureSource(texture);
+		material.diffuse = uv -> diffuse;
 
-		material.specular = uv -> 0.5f;
-		material.roughness = uv -> 0.3f;
+		material.specular = uv -> 0.8f;
+		material.roughness = uv -> 0.1f;
 
-		material.normal = new TextureSource(normals);
+//		material.normal = new TextureSource(normals);
 //		material.normal = uv -> new Vec3(0.5f, 0.5f, 1f);
 
 		Scene scene = new Scene();
@@ -141,7 +141,7 @@ public class Example {
 		Model model = new Model();
 		try {
 //			model.load(new File("resources\\bunnyUV.obj").toPath());
-			model.load(new File("resources\\bunnyUV.obj").toPath());
+			model.load(new File("resources\\sphere.obj").toPath());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -152,7 +152,7 @@ public class Example {
 		System.out.println("build:" + (System.currentTimeMillis() - time) + "ms");
 
 		time = System.currentTimeMillis();
-		renderer.render(scene);
+		renderer.render(scene, 64, 3);
 		System.out.println("render:" + (System.currentTimeMillis() - time) / 1000 + "s");
 
 		BufferedImage image = renderer.getFrameBuffer();

@@ -122,7 +122,7 @@ public class Transform extends Mat4 {
 		translate(matrix, position.negate());
 	}
 
-	public Mat3 createCoordinateSystem(Vec3 normal) {
+	public static Mat3 createCoordinateSystem(Vec3 normal) {
 
 		Vec3 tangent, bitangent;
 		if (Math.abs(normal.x) > Math.abs(normal.y)) {

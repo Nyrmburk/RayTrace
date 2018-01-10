@@ -36,10 +36,7 @@ public class CornellBox {
 		for (Triangle<RenderData> tri : getCornellBox())
 			scene.addVolume(tri);
 
-		Light light = new PointLight(new Vec3(0, 5.488f,-2.796f), new Vec3(16.86f, 10.76f, 3.7f), 10);
-		scene.addLight(light);
-
-		renderer.render(scene);
+		renderer.render(scene, 64, 4);
 
 		BufferedImage image = renderer.getFrameBuffer();
 
@@ -163,14 +160,14 @@ public class CornellBox {
 				green
 		));
 
-//		// light
-//		tris.addAll(quad(
-//				boxVerts[9],
-//				boxVerts[10],
-//				boxVerts[11],
-//				boxVerts[8],
-//				light
-//		));
+		// light
+		tris.addAll(quad(
+				boxVerts[9],
+				boxVerts[10],
+				boxVerts[11],
+				boxVerts[8],
+				light
+		));
 
 		Vec3[] shortBlockVerts = new Vec3[]{
 				new Vec3(1.943792f, 0f, -2.25f),
@@ -183,12 +180,14 @@ public class CornellBox {
 				new Vec3(-0.136738f, 1.65f, -1.14f),
 		};
 
+		Material shortBlockMaterial = white;
+
 		tris.addAll(quad(
 				shortBlockVerts[3],
 				shortBlockVerts[1],
 				shortBlockVerts[0],
 				shortBlockVerts[2],
-				white
+				shortBlockMaterial
 		));
 
 		tris.addAll(quad(
@@ -196,7 +195,7 @@ public class CornellBox {
 				shortBlockVerts[3],
 				shortBlockVerts[2],
 				shortBlockVerts[6],
-				white
+				shortBlockMaterial
 		));
 
 		tris.addAll(quad(
@@ -204,7 +203,7 @@ public class CornellBox {
 				shortBlockVerts[7],
 				shortBlockVerts[6],
 				shortBlockVerts[4],
-				white
+				shortBlockMaterial
 		));
 
 		tris.addAll(quad(
@@ -212,7 +211,7 @@ public class CornellBox {
 				shortBlockVerts[5],
 				shortBlockVerts[4],
 				shortBlockVerts[0],
-				white
+				shortBlockMaterial
 		));
 
 		tris.addAll(quad(
@@ -220,7 +219,7 @@ public class CornellBox {
 				shortBlockVerts[6],
 				shortBlockVerts[2],
 				shortBlockVerts[0],
-				white
+				shortBlockMaterial
 		));
 
 		tris.addAll(quad(
@@ -228,7 +227,7 @@ public class CornellBox {
 				shortBlockVerts[3],
 				shortBlockVerts[7],
 				shortBlockVerts[5],
-				white
+				shortBlockMaterial
 		));
 		
 		Vec3[] tallBlockVerts = new Vec3[] {
@@ -242,12 +241,14 @@ public class CornellBox {
 				new Vec3(-1.957201f, 3.3f, -4.06f),
 		};
 
+		Material tallBlockMaterial = white;
+
 		tris.addAll(quad(
 				tallBlockVerts[3],
 				tallBlockVerts[1],
 				tallBlockVerts[0],
 				tallBlockVerts[2],
-				white
+				tallBlockMaterial
 		));
 
 		tris.addAll(quad(
@@ -255,7 +256,7 @@ public class CornellBox {
 				tallBlockVerts[3],
 				tallBlockVerts[2],
 				tallBlockVerts[6],
-				white
+				tallBlockMaterial
 		));
 
 		tris.addAll(quad(
@@ -263,7 +264,7 @@ public class CornellBox {
 				tallBlockVerts[7],
 				tallBlockVerts[6],
 				tallBlockVerts[4],
-				white
+				tallBlockMaterial
 		));
 
 		tris.addAll(quad(
@@ -271,7 +272,7 @@ public class CornellBox {
 				tallBlockVerts[5],
 				tallBlockVerts[4],
 				tallBlockVerts[0],
-				white
+				tallBlockMaterial
 		));
 
 		tris.addAll(quad(
@@ -279,7 +280,7 @@ public class CornellBox {
 				tallBlockVerts[6],
 				tallBlockVerts[2],
 				tallBlockVerts[0],
-				white
+				tallBlockMaterial
 		));
 
 		tris.addAll(quad(
@@ -287,7 +288,7 @@ public class CornellBox {
 				tallBlockVerts[3],
 				tallBlockVerts[7],
 				tallBlockVerts[5],
-				white
+				tallBlockMaterial
 		));
 
 		return tris;
