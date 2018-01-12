@@ -36,7 +36,7 @@ public class CornellBox {
 		for (Triangle<RenderData> tri : getCornellBox())
 			scene.addVolume(tri);
 
-		renderer.render(scene, 64, 4);
+		renderer.render(scene, 512, 4);
 
 		BufferedImage image = renderer.getFrameBuffer();
 

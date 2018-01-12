@@ -11,11 +11,16 @@ import world.*;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.text.DateFormat;
+import java.time.Duration;
+import java.time.Period;
+import java.util.Date;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by Nyrmburk on 8/17/2016.
@@ -27,6 +32,8 @@ public class Renderer {
 	private Rectangle window;
 	private BufferedImage frameBuffer;
 
+	private AtomicInteger pixelsComplete = new AtomicInteger(0);
+
 	public Renderer(Rectangle window) {
 
 		camera = new PerspectiveCamera();
@@ -35,6 +42,8 @@ public class Renderer {
 	}
 
 	public void render(Scene scene, int samples, int depth) {
+
+		pixelsComplete.set(0);
 
 		Mat4 projection = camera.getProjection(viewport.getSize()).multiply(camera.getTransform());
 		Mat4 inverseMatrix = projection.inverse();
@@ -62,15 +71,28 @@ public class Renderer {
 
 		executor.shutdown();
 		try {
-			executor.awaitTermination(1, TimeUnit.HOURS);
+			long time = System.currentTimeMillis();
+			while(!executor.awaitTermination(10, TimeUnit.SECONDS)) {
+				int pixels = viewport.width * viewport.height;
+				float complete = (float) pixelsComplete.get() / pixels;
+				long elapsed = (System.currentTimeMillis() - time);
+				long left = (long) (elapsed / complete) - elapsed;
+
+				System.out.printf("%.2f%% complete, %s elapsed, %s left\n",
+						complete * 100, humanReadableFormat(elapsed), humanReadableFormat(left));
+			}
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
 
 		for (int y = 0; y < viewport.height; y++) {
 			for (int x = 0; x < viewport.width; x++) {
+
+				if (frame[y][x] == null)
+					frame[y][x] = new Vec3(1, 0, 1);
+
 				if (!Float.isFinite(frame[y][x].x) || !Float.isFinite(frame[y][x].y) || !Float.isFinite(frame[y][x].z))
-					continue;
+					frame[y][x] = new Vec3(1, 1, 0);
 
 				maxBrightness = Math.max(maxBrightness, frame[y][x].x);
 				maxBrightness = Math.max(maxBrightness, frame[y][x].y);
@@ -79,7 +101,7 @@ public class Renderer {
 		}
 
 		System.out.println(maxBrightness);
-		maxBrightness = 2;
+		maxBrightness = 1f;
 
 		for (int y = 0; y < viewport.height; y++) {
 			for (int x = 0; x < viewport.width; x++) {
@@ -96,6 +118,13 @@ public class Renderer {
 		}
 	}
 
+	public static String humanReadableFormat(long milliseconds) {
+		return Duration.ofMillis(milliseconds).toString()
+				.substring(2)
+				.replaceAll("(\\d[HMS])(?!$)", "$1 ")
+				.toLowerCase();
+	}
+
 	private float clamp(float a) {
 
 		if (Float.isNaN(a) || a < 0) {
@@ -109,7 +138,6 @@ public class Renderer {
 
 	private void renderKernel(Scene scene, int samples, int depth, Mat4 inverseMatrix, Vec3[][] frame, Rectangle area) {
 
-		ClosestQuery<Volumetric<RenderData>> query = new ClosestQuery<>();
 		Vec3 near, far;
 
 		for (int y = area.y; y < area.y + area.height; y++) {
@@ -122,6 +150,7 @@ public class Renderer {
 				far = inverseMatrix.multiply(new Vec3(u, v, 1), 1);
 
 				frame[y][x] = raycast(scene, new Ray3(near, far), samples, depth);
+				pixelsComplete.incrementAndGet();
 			}
 		}
 	}
@@ -166,7 +195,7 @@ public class Renderer {
 					Vec3 perturbation = sampleHemisphere(random.nextFloat(), random.nextFloat());
 					Vec3 perturbed = rotation.multiply(perturbation).normalized();
 					Ray3 bounceRay = new Ray3(intersectionData.intersection, perturbed, 100000);
-					Vec3 resultColor = raycast(scene, bounceRay, samples, depth, volumetric);
+					Vec3 resultColor = raycast(scene, bounceRay, (int) Math.sqrt(samples * 10), depth, volumetric);
 					resultColor = shade(
 							incoming, bounceRay.direction, normal,
 							incomingAngle, normal.dot(bounceRay.direction),
@@ -197,7 +226,6 @@ public class Renderer {
 					// surface area of a sphere
 					float falloff = 4 * ((float) Math.PI) * lightRay.length * lightRay.length;
 					photon = photon.divide(falloff);
-					photon.set(photon.multiply(Math.max(0, outgoingAngle)));
 
 					Vec3 shaded = shade(
 							incoming, lightRay.direction, normal,
@@ -232,7 +260,7 @@ public class Renderer {
 		if (material.emmission != null)
 			emission = material.emmission.get(uv);
 
-		return diffuse(diffuse, light).add(light.multiply(specular)).add(emission);
+		return diffuse(outgoingAngle, diffuse, light).add(light.multiply(specular)).add(emission);
 	}
 
 	float brdf(float incomingAngle, float outgoingAngle,
@@ -250,7 +278,9 @@ public class Renderer {
 	}
 
 	float beckmann(Vec3 normal, Vec3 halfAngle, float roughness) {
-		float alpha = (float) Math.acos(normal.dot(halfAngle));
+		float angle = normal.dot(halfAngle);
+//		float alpha = (float) Math.acos(angle);
+		float alpha = fastAcos(angle);
 
 		float tanAlpha2 = (float) Math.tan(alpha);
 		tanAlpha2 = tanAlpha2 * tanAlpha2;
@@ -261,6 +291,15 @@ public class Renderer {
 		cosAlpha4 *= cosAlpha4; // cos^4(alpha)
 
 		return ((float) Math.exp(-tanAlpha2 / roughness2)) / (((float) Math.PI) * roughness2 * cosAlpha4);
+	}
+
+	private final float PI_4 = (float) (Math.PI * Math.PI * Math.PI * Math.PI);
+	float fastAtan(float x) {
+		return PI_4*x - x*(Math.abs(x) - 1)*(0.2447f + 0.0663f*Math.abs(x));
+	}
+
+	float fastAcos(float x) {
+		return fastAtan((float) Math.sqrt(1 - x * x) / x);
 	}
 
 	float fresnel(float incomingAngle, float roughness) {
@@ -276,6 +315,10 @@ public class Renderer {
 		return Math.min(1, attenuation);
 	}
 
+	private Vec3 diffuse(float outgoingAngle, Vec3 diffuse, Vec3 light) {
+		return diffuse.multiply(light).multiply(Math.max(0, outgoingAngle));
+	}
+
 	private Vec3 sampleHemisphere(float a, float b) {
 
 		float sinTheta = (float) Math.sqrt(1 - a * a);
@@ -283,10 +326,6 @@ public class Renderer {
 		float x = sinTheta * (float) Math.cos(phi);
 		float z = sinTheta * (float) Math.sin(phi);
 		return new Vec3(x, z, a);
-	}
-
-	private Vec3 diffuse(Vec3 diffuse, Vec3 light) {
-		return diffuse.multiply(light);
 	}
 
 	public Camera getCamera() {
